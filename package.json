@@ -11,6 +11,10 @@
   ],
   "author": "Bethany Hitch <bethany.e.hitch@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:dfoverdx/better-global-types.git"
+  },
   "devDependencies": {
     "typescript": "^5.1.6"
   },
