@@ -121,3 +121,12 @@ const augArr = [1, 2, 3] as AugmentedArray<[1, 2, 3]>;
 (): { a: number; b?: boolean; } => Object.fromEntries(Object.entries<{ a: 1, b?: true }>({ a: 1 }));
 // @ts-expect-error
 (): { a: number; b: boolean; } => Object.fromEntries(Object.entries<{ a: 1, b?: true }>({ a: 1 }));
+{
+  // test for union-type keys
+  type Key = 'a' | 'b';
+  type Foo = Record<Key, Record<number, number>>;
+
+  const x = Object.fromEntries<[Key, Foo[Key]][]>([['a', { 1: 1 }], ['b', { 2: 2 }]]);
+  type Test = Foo extends typeof x ? true : false;
+  const test: Test = true;
+}

@@ -1,8 +1,9 @@
 {
   "name": "@dfoverdx/better-global-types",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Some stronger TypeScript types for global objects",
   "types": "index.d.ts",
+  "main": "",
   "scripts": {
     "test": "tsc"
   },
@@ -15,6 +16,8 @@
     "type": "git",
     "url": "git@github.com:dfoverdx/better-global-types.git"
   },
+  "access": "public",
+  "private": false,
   "devDependencies": {
     "typescript": "^5.1.6"
   },
