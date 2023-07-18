@@ -34,4 +34,9 @@ declare namespace TSM {
   type DeepPartial<T> = {
     [K in keyof T]?: DeepPartial<T[K]>;
   };
+
+  /** Applies `Required<T>` to `T` and all descendants of `T`. */
+  type DeepRequired<T> = {
+    [K in keyof T]-?: DeepRequired<T[K]>;
+  }
 }
