@@ -1,6 +1,6 @@
 {
   "name": "@dfoverdx/better-global-types",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Some stronger TypeScript types for global objects",
   "types": "index.d.ts",
   "main": "",

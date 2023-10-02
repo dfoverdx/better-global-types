@@ -29,10 +29,48 @@ interface NumberConstructor {
  * A namespace for more complicated utility types, so as not to pollute the global namespace.
  */
 declare namespace TSM {
-  /** Gets the keys of an object whose values are optional, `undefined`, or a union type including `undefined`. */
+  /**
+   * Gets the keys of an object whose values are optional, `undefined`, or a union type including `undefined`.
+   *
+   * @example
+   * type Foo = { a: undefined; b?: number; c: undefined | number, d: boolean };
+   * type UndefinedKeysOfFoo = UndefinedKeys<Foo>; // 'a' | 'b' | 'c'
+   */
   type UndefinedKeys<T> = {
     [K in keyof T]-?: undefined extends T[K] ? K : never;
   }[keyof T];
+
+  /** Extracts keys from `T` that are optional or can be `null` or `undefined`. */
+  type NullishKeys<T> = Exclude<keyof T, NonNullishKeys<T>>;
+
+  /** Extracts keys from `T` that are required and cannot be `null` or `undefined`. */
+  type NonNullishKeys<T> = {
+    [K in keyof T]-?: T[K] extends NonNullable<T[K]> ? K : never;
+  }[keyof T];
+
+  /**
+   * Gets the keys of an object whose values are optional.
+   *
+   * @example
+   * type Foo = { a: undefined; b?: number; c: undefined | number, d: boolean };
+   * type OptionalKeysOfFoo = OptionalKeys<Foo>; // 'b'
+   */
+  type OptionalKeys<T> = {
+    [K in keyof T]-?: Omit<T, K> extends T ? K : never;
+  }[keyof T];
+
+  /**
+   * Returns the keys that cannot be omitted from a the given type.
+   *
+   * Note, if an object has a property that *must* exist and `undefined` is a valid value, this key is still considered
+   * required and will be included.
+   *
+   * @example
+   *
+   * type Foo = { a: undefined; b?: number; c: undefined | number, d: boolean };
+   * type RequiredKeysOfFoo = RequiredKeys<Foo>; // 'a' | 'c' | 'd'
+   */
+  type RequiredKeys<T> = Exclude<keyof T, OptionalKeys<T>>;
 
   /**
    * Gets the keys of an object that have a union type including `undefined` values, e.g. `'x'` in `{ x?: 1 }` and `{ x:
@@ -66,8 +104,8 @@ declare namespace TSM {
     | Exclude<keyof Required<T>, symbol | keyof any[]>
     | (
       T extends readonly []
-      ? never
-      : T extends readonly [infer _, ...any] ? never : number
+        ? never
+        : T extends readonly [infer _, ...any] ? never : number
     );
 
   /** Applies `Partial<T>` to `T` and all descendants of `T`. */
@@ -163,4 +201,60 @@ declare namespace TSM {
           ? TSM.ParseInteger<`${I}${ParseIntegerWithTail<U>}`>
         : I :
     never;
+
+  /**
+   * Intellisense utility type.  Squashes a union type into a single, unified type.  Literal types are not squashed, but
+   * are included in the resulting union type.  To TSC, this is a no-op, but it makes unioned object types far more
+   * readable.
+   */
+  type Squash<T> =
+    // indexing literals with keyof T will result in an object with all of the literal's keys defined--the opposite of
+    // squashing--so just union any literals outside of the squashed type.
+    | Extract<T, Literal>
+    | { [K in keyof Extract<T, NonLiteral>]: Extract<T, NonLiteral>[K]; };
+
+  /** Applies {@link Squash | `Squash<T>`} an object and all its descendants. */
+  type SquashDeep<T> =
+    | Extract<T, Literal>
+    | { [K in keyof Extract<T, NonLiteral>]: SquashDeep<Extract<T, NonLiteral>[K]>; };
+
+  /** JavaScript literal types. */
+  type Literal = string | number | boolean | bigint | symbol | null | undefined;
+
+  /** JavaScript non-literal types. */
+  type NonLiteral = object | Function | any[];
+
+  /**
+   * Merges two types `T` and `U`.  Where their properties differ, if at least one of those properties is a
+   * {@link Literal}, returns the union of `T` and `U`.  Otherwise, applies `MergeUnion` recursively.
+   *
+   * If applied to two arrays or two objects, merges them.  If applied to an array and an object, returns the union of
+   * the two.
+   */
+  type MergeUnion<T, U> =
+    // if at least one of T and U is a literal, return the union of T and U
+    Extract<T | U, Literal> extends Literal ? T | U :
+    // if T and U are both identical, just return T
+    T | U extends T & U ? T & U :
+    Squash<(
+      & { [K in Exclude<RequiredKeys<T>, keyof U>]: T[K]; }
+      & { [K in Exclude<OptionalKeys<T>, keyof U>]?: T[K]; }
+      & { [K in Exclude<RequiredKeys<U>, keyof T>]: U[K]; }
+      & { [K in Exclude<OptionalKeys<U>, keyof T>]?: U[K]; }
+      & { [K in keyof T & keyof U & (OptionalKeys<T> | OptionalKeys<U>)]?: __MergeUnionNonLiterals<T[K], U[K]>; }
+      & { [K in Exclude<keyof T & keyof U, OptionalKeys<T> | OptionalKeys<U>>]: __MergeUnionNonLiterals<T[K], U[K]>; }
+    )>;
+
+  /** @internal */
+  type __MergeUnionNonLiterals<T, U> = {
+    [K in keyof T & keyof U]:
+      T[K] extends any[]
+        ? U[K] extends any[]
+          // merge 2 arrays/tuples
+          ? MergeUnion<T[K], U[K]>
+          // don't merge an array with an object
+          : T[K] | U[K]
+        // merge 2 objects
+        : MergeUnion<T[K], U[K]>;
+  }
 }

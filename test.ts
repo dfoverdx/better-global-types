@@ -254,6 +254,29 @@ const augArr = [1, 2, 3] as AugmentedArray<[1, 2, 3]>;
 // @ts-expect-error
 (): TSM.UndefinedKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'f';
 
+// TSM.OptionalKeys tests
+(): TSM.OptionalKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'b';
+// @ts-expect-error
+(): TSM.OptionalKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'c';
+// @ts-expect-error
+(): TSM.OptionalKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'd';
+(): TSM.OptionalKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'e';
+// @ts-expect-error
+(): TSM.OptionalKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'a';
+// @ts-expect-error
+(): TSM.OptionalKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'f';
+
+// TSM.RequiredKeys tests
+(): TSM.RequiredKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'a';
+// @ts-expect-error
+(): TSM.RequiredKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'b';
+(): TSM.RequiredKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'c';
+(): TSM.RequiredKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'd';
+// @ts-expect-error
+(): TSM.RequiredKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'e';
+// @ts-expect-error
+(): TSM.RequiredKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'f';
+
 // TSM.MaybeUndefinedKeys tests
 (): TSM.MaybeUndefinedKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'b';
 (): TSM.MaybeUndefinedKeys<{ a: 1, b?: 2, c: 3 | undefined, d: undefined, e?: undefined }> => 'c';
@@ -273,3 +296,37 @@ const augArr = [1, 2, 3] as AugmentedArray<[1, 2, 3]>;
 (): TSM.MaybeUndefinedKeys<[ undefined, 1 | undefined, 2? ]> => 0;
 // @ts-expect-error
 (): TSM.MaybeUndefinedKeys<[ undefined, 1 | undefined, 2? ]> => 1;
+
+// TSM.MergeUnion tests
+(): TSM.MergeUnion<string, number> => 1;
+(): TSM.MergeUnion<string, number> => 'foo';
+(): TSM.MergeUnion<string, number | undefined> => undefined;
+// @ts-expect-error
+(): TSM.MergeUnion<string, number> => undefined;
+(): TSM.MergeUnion<string, { a: 1 }> => ({ a: 1 });
+(): TSM.MergeUnion<string, { a: 1 }> => 'foo';
+// @ts-expect-error
+(): TSM.MergeUnion<string, { a: 1 }> => 1;
+(): TSM.MergeUnion<{ a: 1 }, { b: 2 }> => ({ a: 1, b: 2 });
+(): TSM.MergeUnion<{ a?: 1 }, { b: 2 }> => ({ b: 2 });
+// @ts-expect-error
+(): TSM.MergeUnion<{ a: 1 }, { b: 2 }> => ({});
+(): TSM.MergeUnion<{ a: 1 }, { a: 2 }> => ({ a: 1 });
+(): TSM.MergeUnion<{ a: 1 }, { a: 2 }> => ({ a: 2 });
+(): TSM.MergeUnion<{ a?: 1 }, { a: 2 }> => ({});
+(): TSM.MergeUnion<{ a?: 1 }, { a?: 2 }> => ({});
+// @ts-expect-error
+(): TSM.MergeUnion<{ a: 1 }, { a: 2 }> => ({ a: 3 });
+// @ts-expect-error
+(): TSM.MergeUnion<{ a?: 1 }, { a: 2 }> => ({ a: 3 });
+(): TSM.MergeUnion<1[], 2[]> => [1];
+// @ts-expect-error
+(): TSM.MergeUnion<1[], 2[]> => [3];
+(): TSM.MergeUnion<[1], [unknown, 2]> => [1, 2];
+(): TSM.MergeUnion<[1], [2]> => [2];
+// @ts-expect-error
+(): TSM.MergeUnion<[1], [2]> => [3];
+(): TSM.MergeUnion<[1], { a: 1 }> => [1];
+(): TSM.MergeUnion<[1], { a: 1 }> => ({ a: 1 });
+// @ts-expect-error
+(): TSM.MergeUnion<[1], { a: 1 }> => null;
