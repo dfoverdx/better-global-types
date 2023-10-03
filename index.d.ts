@@ -204,7 +204,7 @@ declare namespace TSM {
 
   /**
    * Intellisense utility type.  Squashes a union type into a single, unified type.  Literal types are not squashed, but
-   * are included in the resulting union type.  To TSC, this is a no-op, but it makes unioned object types far more
+   * are unioned with the squashed object.  To TSC, this is a no-op, but it makes unioned object types far more
    * readable.
    */
   type Squash<T> =
@@ -222,7 +222,7 @@ declare namespace TSM {
   type Literal = string | number | boolean | bigint | symbol | null | undefined;
 
   /** JavaScript non-literal types. */
-  type NonLiteral = object | Function | any[];
+  type NonLiteral = Record<PropertyKey, unknown> | Function | readonly any[];
 
   /**
    * Merges two types `T` and `U`.  Where their properties differ, if at least one of those properties is a
@@ -230,31 +230,52 @@ declare namespace TSM {
    *
    * If applied to two arrays or two objects, merges them.  If applied to an array and an object, returns the union of
    * the two.
+   *
+   * **Warning**: Will fail to merge two arrays if exactly one is readonly.  Will also fail if you try to merge a tuple
+   * with an `unknown` or `any` element where that same index is defined in the other tuple.  The complexity of fixing
+   * these was too high.
    */
   type MergeUnion<T, U> =
-    // if at least one of T and U is a literal, return the union of T and U
-    Extract<T | U, Literal> extends Literal ? T | U :
     // if T and U are both identical, just return T
-    T | U extends T & U ? T & U :
+    T | U extends T & U ? T : (
+      // extract literals from T and U
+      | Extract<T | U, Literal>
+      // handle arrays separately because advanced TS types don't work well with arrays
+      | __MergeUnionNonLiterals<Extract<T, readonly any[]>, Extract<U, readonly any[]>>
+      | __MergeUnionNonLiterals<Extract<T, Record<PropertyKey, unknown> | Function>, Extract<U, Record<PropertyKey, unknown> | Function>>
+    );
+
+  /** @internal */
+  type __MergeUnionNonLiterals<T extends NonLiteral, U extends NonLiteral> =
+    // in case where neither T nor U are interesting, return never, which will be unioned away with the rest of the result
+    IsNever<T | U> extends true ? never :
+    // case where T did not include the required type before extraction
+    IsNever<T> extends true ? U :
+    // case where U did not include the required type before extraction
+    IsNever<U> extends true ? T :
     Squash<(
-      & { [K in Exclude<RequiredKeys<T>, keyof U>]: T[K]; }
-      & { [K in Exclude<OptionalKeys<T>, keyof U>]?: T[K]; }
-      & { [K in Exclude<RequiredKeys<U>, keyof T>]: U[K]; }
-      & { [K in Exclude<OptionalKeys<U>, keyof T>]?: U[K]; }
-      & { [K in keyof T & keyof U & (OptionalKeys<T> | OptionalKeys<U>)]?: __MergeUnionNonLiterals<T[K], U[K]>; }
-      & { [K in Exclude<keyof T & keyof U, OptionalKeys<T> | OptionalKeys<U>>]: __MergeUnionNonLiterals<T[K], U[K]>; }
+      // pull out required props that are only in T or only in U
+      & Omit<Pick<T, RequiredKeys<T>>, keyof U>
+      & Omit<Pick<U, RequiredKeys<U>>, keyof T>
+      // pull out optional props that are only in T or only in U
+      & Omit<Pick<T, OptionalKeys<T>>, keyof U>
+      & Omit<Pick<U, OptionalKeys<U>>, keyof T>
+      // merge the remaining object properties recursively
+      & {
+          // if the property is optional in either T or U, make it optional in the result
+          [K in keyof T & keyof U & (OptionalKeys<T> | OptionalKeys<U>)]?: __MergeUnionClashingProps<T[K], U[K]>;
+        }
+      & { [K in RequiredKeys<T> & RequiredKeys<U>]: __MergeUnionClashingProps<T[K], U[K]>; }
     )>;
 
   /** @internal */
-  type __MergeUnionNonLiterals<T, U> = {
-    [K in keyof T & keyof U]:
-      T[K] extends any[]
-        ? U[K] extends any[]
-          // merge 2 arrays/tuples
-          ? MergeUnion<T[K], U[K]>
-          // don't merge an array with an object
-          : T[K] | U[K]
-        // merge 2 objects
-        : MergeUnion<T[K], U[K]>;
-  }
+  type __MergeUnionClashingProps<T, U> =
+    T extends readonly any[]
+      ? U extends readonly any[]
+        // merge two arrays
+        ? MergeUnion<T, U>
+        // union an array and a non-array
+        : T | U
+      // merge two non-arrays
+      : MergeUnion<T, U>;
 }
