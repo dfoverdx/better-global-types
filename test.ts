@@ -304,6 +304,7 @@ const augArr = [1, 2, 3] as AugmentedArray<[1, 2, 3]>;
 // @ts-expect-error
 (): TSM.MergeUnion<string, number> => undefined;
 (): TSM.MergeUnion<string, { a: 1 }> => ({ a: 1 });
+(): TSM.MergeUnion<string, { a?: 1 }> => ({ a: 1 });
 (): TSM.MergeUnion<string, { a: 1 }> => 'foo';
 // @ts-expect-error
 (): TSM.MergeUnion<string, { a: 1 }> => 1;
@@ -340,6 +341,7 @@ const augArr = [1, 2, 3] as AugmentedArray<[1, 2, 3]>;
 (): TSM.MergeUnion<[1], [2]> => [];
 (): TSM.MergeUnion<[1], { a: 1 }> => [1];
 (): TSM.MergeUnion<[1], { a: 1 }> => ({ a: 1 });
+(): TSM.MergeUnion<readonly [1], { a: 1 }> => ({ a: 1 });
 // @ts-expect-error
 (): TSM.MergeUnion<[1], { a: 1 }> => null;
 (): TSM.MergeUnion<{ a: 1, b: { c: 1, d: 2 } }, { a: { c: 2 }, b: { d: 3 } }> => ({ a: { c: 2 }, b: { c: 1, d: 3 } });

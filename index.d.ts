@@ -242,7 +242,10 @@ declare namespace TSM {
       | Extract<T | U, Literal>
       // handle arrays separately because advanced TS types don't work well with arrays
       | __MergeUnionNonLiterals<Extract<T, readonly any[]>, Extract<U, readonly any[]>>
-      | __MergeUnionNonLiterals<Extract<T, Record<PropertyKey, unknown> | Function>, Extract<U, Record<PropertyKey, unknown> | Function>>
+      | __MergeUnionNonLiterals<
+          Exclude<Extract<T, NonLiteral>, readonly any[]>,
+          Exclude<Extract<U, NonLiteral>, readonly any[]>
+        >
     );
 
   /** @internal */
